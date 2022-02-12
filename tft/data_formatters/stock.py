@@ -28,7 +28,7 @@ DataTypes = data_formatters.base.DataTypes
 InputTypes = data_formatters.base.InputTypes
 
 
-class VolatilityFormatter(GenericDataFormatter):
+class StockFormatter(GenericDataFormatter):
   """Defines and formats data for the volatility dataset.
 
   Attributes:
@@ -38,16 +38,15 @@ class VolatilityFormatter(GenericDataFormatter):
   """
 
   _column_definition = [
-      ('Symbol', DataTypes.CATEGORICAL, InputTypes.ID),
-      ('date', DataTypes.DATE, InputTypes.TIME),
-      ('log_vol', DataTypes.REAL_VALUED, InputTypes.TARGET),
-      ('open_to_close', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
-      ('days_from_start', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+      ('Symbol', DataTypes.CATEGORICAL, InputTypes.ID), #stock symbol
+      ('date', DataTypes.DATE, InputTypes.TIME), # the index of timestamp
+      ('收盤價', DataTypes.REAL_VALUED, InputTypes.TARGET), #price
+      ('開盤價', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('day_of_week', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
       ('day_of_month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
-      ('week_of_year', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
+      # ('week_of_the_year', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
       ('month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
-      ('Region', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
+      ('dummy', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT)
   ]
 
   def __init__(self):
@@ -59,7 +58,7 @@ class VolatilityFormatter(GenericDataFormatter):
     self._target_scaler = None
     self._num_classes_per_cat_input = None
 
-  def split_data(self, df, valid_boundary=2016, test_boundary=2018):
+  def split_data(self, df, valid_boundary='2020-10-01', test_boundary='2020-12-01'):
     """Splits data frame into training-validation-test data frames.
 
     This also calibrates scaling object, and transforms data for each split.
@@ -75,11 +74,19 @@ class VolatilityFormatter(GenericDataFormatter):
 
     print('Formatting train-valid-test splits.')
 
-    index = df['year']
+    index = df['date']
+    # train = df.copy()
+    # valid = df.copy()
+    # test = df.copy()
     train = df.loc[index < valid_boundary]
+    print("train shape:", train.shape)
     valid = df.loc[(index >= valid_boundary) & (index < test_boundary)]
-    test = df.loc[(index >= test_boundary) & (df.index <= '2019-06-28')]
-
+    print("valid shape:", valid.shape)
+    test = df.loc[(index >= test_boundary)]
+    print("test shape:", test.shape)
+    # train = df.copy()
+    # valid = df.copy()
+    # test = df.copy()
     self.set_scalers(train)
 
     return (self.transform_inputs(data) for data in [train, valid, test])
@@ -162,7 +169,7 @@ class VolatilityFormatter(GenericDataFormatter):
     for col in categorical_inputs:
       string_df = df[col].apply(str)
       output[col] = self._cat_scalers[col].transform(string_df)
-
+    print("output", output)
     return output
 
   def format_predictions(self, predictions):
@@ -189,8 +196,8 @@ class VolatilityFormatter(GenericDataFormatter):
     """Returns fixed model parameters for experiments."""
 
     fixed_params = {
-        'total_time_steps': 252 + 5,
-        'num_encoder_steps': 252,
+        'total_time_steps': 40,
+        'num_encoder_steps': 30,
         'num_epochs': 100,
         'early_stopping_patience': 5,
         'multiprocessing_workers': 5,

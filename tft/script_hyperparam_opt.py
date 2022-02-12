@@ -132,11 +132,15 @@ def main(expt_name, use_gpu, restart_opt, model_folder, hyperparam_iterations,
     print("Computing best validation loss")
     val_loss = model.evaluate(valid)
 
+    print(valid)
+
     print("Computing test loss")
     output_map = model.predict(test, return_targets=True)
     targets = data_formatter.format_predictions(output_map["targets"])
     p50_forecast = data_formatter.format_predictions(output_map["p50"])
     p90_forecast = data_formatter.format_predictions(output_map["p90"])
+    print("attention:")
+    print(model.get_attention(valid))
 
     def extract_numerical_data(data):
       """Strips out forecast time and identifier columns."""
@@ -144,7 +148,7 @@ def main(expt_name, use_gpu, restart_opt, model_folder, hyperparam_iterations,
           col for col in data.columns
           if col not in {"forecast_time", "identifier"}
       ]]
-
+    print("target:",targets)
     p50_loss = utils.numpy_normalised_quantile_loss(
         extract_numerical_data(targets), extract_numerical_data(p50_forecast),
         0.5)
@@ -153,6 +157,7 @@ def main(expt_name, use_gpu, restart_opt, model_folder, hyperparam_iterations,
         0.9)
 
     tf.keras.backend.set_session(default_keras_session)
+
 
   print("Hyperparam optimisation completed @ {}".format(dte.datetime.now()))
   print("Best validation loss = {}".format(val_loss))
